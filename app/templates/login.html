@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Chat Login</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 350px;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.1);
+
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #555;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #222;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #444;
+        }
+
+        button:disabled {
+            background: #888;
+            cursor: not-allowed;
+        }
+
+        #error {
+
+            color: #dc3545;
+            text-align: center;
+            min-height: 20px;
+            margin: 12px 0 0;
+        }
+
+        #success {
+            color: #198754;
+            text-align: center;
+            min-height: 20px;
+            margin: 12px 0 0;
+        }
+
+        a {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            color: #222;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Login</h2>
+    <input
+        id="username"
+        type="text"
+        placeholder="Username"
+        autocomplete="username"
+    >
+    <input
+        id="password"
+        type="password"
+        placeholder="Password"
+        autocomplete="current-password"
+    >
+    <button
+        id="loginButton"
+        onclick="login()"
+    >
+        Login
+    </button>
+    <p id="error"></p>
+    <p id="success"></p>
+    <a href="/register">
+        Create account
+    </a>
+</div>
+<script>
+
+async function login() {
+    const username =
+        document
+            .getElementById("username")
+            .value
+            .trim();
+    const password =
+        document
+            .getElementById("password")
+            .value;
+    const errorElement =
+        document.getElementById("error");
+    const successElement =
+        document.getElementById("success");
+    const loginButton =
+        document.getElementById("loginButton");
+    errorElement.innerText = "";
+    successElement.innerText = "";
+    if (!username) {
+        errorElement.innerText =
+            "Please enter username.";
+        return;
+    }
+
+    if (!password) {
+        errorElement.innerText =
+            "Please enter password.";
+        return;
+    }
+
+    loginButton.disabled = true;
+
+    loginButton.innerText =
+        "Logging in...";
+
+    try {
+
+        const formData =
+            new URLSearchParams();
+
+        formData.append(
+            "username",
+            username
+        );
+
+        formData.append(
+            "password",
+            password
+        );
+
+        const response =
+            await fetch(
+                "/auth/login",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: formData
+                }
+            );
+
+        const data =
+            await response.json();
+
+        console.log(
+            "Login response:",
+            data
+        );
+
+        if (!response.ok) {
+            if (
+                Array.isArray(data.detail)
+            ) {
+
+                errorElement.innerText =
+                    data.detail
+                        .map(
+                            error => {
+                                return (
+                                    error.msg ||
+                                    "Invalid input"
+                                );
+                            }
+                        )
+                        .join(", ");
+            }
+
+            else {
+                errorElement.innerText =
+                    data.detail ||
+                    "Invalid username or password.";
+            }
+
+            loginButton.disabled = false;
+            loginButton.innerText =
+                "Login";
+            return;
+        }
+
+        if (!data.access_token) {
+            errorElement.innerText =
+                "Login successful but access token was not returned.";
+            loginButton.disabled = false;
+            loginButton.innerText =
+                "Login";
+
+            return;
+        }
+
+        localStorage.setItem(
+            "token",
+            data.access_token
+        );
+
+        localStorage.setItem(
+            "token_type",
+            data.token_type || "bearer"
+        );
+
+        successElement.innerText =
+            "Login successful!";
+
+        setTimeout(
+            function() {
+
+                window.location.href =
+                    "/chat";
+
+            },
+            300
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Login error:",
+            error
+        );
+
+        errorElement.innerText =
+            "Unable to connect to server.";
+
+        loginButton.disabled = false;
+
+        loginButton.innerText =
+            "Login";
+
+    }
+
+}
+
+document
+    .getElementById("password")
+    .addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                login();
+
+            }
+
+        }
+    );
+</script>
+</body>
+</html>
